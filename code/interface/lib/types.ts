@@ -36,7 +36,7 @@ export type SearchBrief = {
 
 export type FactorScores = { relevance: number; recency: number; scope: number; authority: number }; // 0..1
 
-export type ResultFlag = "superseded" | "conflict_loser" | "out_of_scope" | "owner_inactive" | "outdated";
+export type ResultFlag = "superseded" | "conflict_loser" | "out_of_scope" | "owner_inactive" | "outdated" | "not_yet_effective";
 
 export type ScoredResult = {
   doc: DocumentRecord;

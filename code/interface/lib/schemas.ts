@@ -3,6 +3,15 @@
  */
 import { z } from "zod";
 
+/** True for a real calendar date in YYYY-MM-DD form (rejects e.g. 2026-13-45, which would make every score NaN). */
+export function isValidIsoDate(s: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+
+export const isoDateSchema = z.string().refine(isValidIsoDate, "Use a valid date (YYYY-MM-DD)");
+
 export const sourceTypeSchema = z.enum(["policy", "manual", "checklist", "email", "teams_chat", "workflow"]);
 
 const shortText = z.string().trim().max(200);
@@ -15,7 +24,8 @@ export const searchBriefSchema = z.object({
     client: shortText.max(80).optional(),
     employee_category: shortText.max(80).optional(),
   }),
-  reference_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+  /** The time point to search around. Optional: the API falls back to "today". */
+  reference_date: isoDateSchema.optional(),
   source_types: z.array(sourceTypeSchema).max(6).optional(),
 });
 
@@ -32,10 +42,10 @@ export const documentRecordSchema = z.object({
     client: z.string().nullable().optional(),
     employee_category: z.string().nullable().optional(),
   }),
-  effective_from: z.string().optional(),
-  effective_until: z.string().nullable().optional(),
-  last_modified: z.string(),
-  last_reviewed: z.string().optional(),
+  effective_from: isoDateSchema.optional(),
+  effective_until: isoDateSchema.nullable().optional(),
+  last_modified: isoDateSchema,
+  last_reviewed: isoDateSchema.optional(),
   owner: z.object({ name: z.string(), role: z.string(), active: z.boolean() }),
   authority_level: z.number().min(0).max(1),
   supersedes: z.array(z.string()).optional(),
@@ -63,7 +73,7 @@ export const briefRequestSchema = z.object({
     .min(1)
     .max(30),
   clarify: clarifySchema.default({}),
-  reference_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  reference_date: isoDateSchema.optional(),
 });
 
 /** /api/chat receives AI SDK UI messages; we only validate the shape we use. */
@@ -88,6 +98,10 @@ export const llmBriefSchema = z.object({
   topic_tags: z.array(z.string()).describe("3-6 lowercase keywords, e.g. payroll, deadline, december, year-end"),
   country: z.string().optional().describe("ISO country code, e.g. BE or NL"),
   client: z.string().optional().describe("Client name if one was mentioned, otherwise omit"),
+  reference_date: z
+    .string()
+    .optional()
+    .describe("YYYY-MM-DD, ONLY if the user explicitly names a year or a month with a year; otherwise omit"),
 });
 
 export type BriefRequest = z.infer<typeof briefRequestSchema>;

@@ -1,5 +1,46 @@
 [
   {
+    "id": "pol-be-2027",
+    "source_type": "policy",
+    "title": "Payroll change deadlines Belgium 2027",
+    "url": "https://intranet.example.com/knowledge-centre/be/payroll-change-deadlines-2027",
+    "summary": "Cut-off days for submitting payroll changes in Belgium from 1 January 2027. The December cut-off moves to the 12th because of the new electronic filing calendar.",
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "12",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "deadline",
+      "cutoff",
+      "december",
+      "year-end",
+      "changes",
+      "belgium"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
+    "effective_from": "2027-01-01",
+    "effective_until": "2027-12-31",
+    "last_modified": "2026-09-20",
+    "last_reviewed": "2026-09-20",
+    "owner": {
+      "name": "Pieter V.",
+      "role": "Payroll Policy Lead BE, Knowledge Centre BE",
+      "active": true
+    },
+    "authority_level": 1,
+    "supersedes": [
+      "pol-be-2026"
+    ],
+    "excerpt": "§3 Year-end (from 1 January 2027): Payroll changes for the December run must be submitted no later than the 12th of December."
+  },
+  {
     "id": "pol-be-2026",
     "source_type": "policy",
     "title": "Payroll change deadlines Belgium 2026",

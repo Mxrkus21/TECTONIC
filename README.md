@@ -50,34 +50,48 @@ flowchart LR
 
 ```
 fit = 100 × ( 0.40·relevance + 0.20·recency + 0.20·scope + 0.15·authority + 0.05·ownerActive )
-      − 30 if superseded − 20 if it loses a conflict − 25 if out of scope      (clamped 0..100)
+      + up to 5 for verified working links
+      − 30 if superseded − 20 if it loses a conflict − 25 if out of scope − 25 if not yet in effect
+      (not clamped)
 ```
 
 | Factor | How it's computed |
 | --- | --- |
 | Relevance | Topic-tag + keyword overlap with the brief (hook `llmRelevance()` ready for semantic scoring) |
-| Recency | Exponential decay, 12-month half-life from the latest of effective date / last modified; expired docs halved |
+| Recency | Centred on the brief's **"as of" date** (today if none is given; an explicit year or "December 2025" in the question sets it). A document **in effect on that date** scores 1; the further it lies before *or after* that date, the lower, halving every half-life. The half-life adapts to the documents found (median distance, never below 14 days). |
 | Scope | Country mismatch → 0.1; general doc for your country → 0.8; your client's specific doc → 1.0; another client's → 0 |
 | Authority | Source authority (official policy / enforced workflow 1.0 … Teams chat 0.4) |
+| Links | URLs in a document's text are checked offline (`npm run check:links`); working links earn a bonus, broken ones nothing |
 | Owner active | Is someone still maintaining it? |
+
+**Time awareness:** documents that only take effect after the chosen date are flagged **Not yet in effect** and
+never decide the answer; a newer version only supersedes an older one once it is in effect. Move the "as of"
+date to 2027 and the 2027 policy takes over; move it to mid-2025 and the 2025 policy applies again.
 
 **Conflicts:** documents that make the same claim (e.g. `december_cutoff_day`) with overlapping scope but
 different values are compared; the highest-fit value wins, losers are penalised and explained. Client-specific
 documents are treated as **exceptions**, not conflicts.
 
+**What is shown:** the displayed fit is absolute (not "100% for the best"). Internally, scores are normalised
+against the best result of the search only to hide results below **70% of the best** — they stay one click away
+under "Show more".
+
 All weights live in one object: `SCORING` in [`code/interface/lib/evaluate/index.ts`](code/interface/lib/evaluate/index.ts).
 
 ### Demo scenario
 
-"What is the deadline for submitting December payroll changes?" — Belgium, today = 2026-09-30, 8 sources:
+"What is the deadline for submitting December payroll changes?" — Belgium, today = 2026-09-30, 9 sources:
 
 - Client **Acme** → *"18th for Acme (client exception, confirmed by Pieter V.); 15th for everyone else."*
 - Any other client → *"15th of December."*
 - Conflict: the 2025 operations manual and a Teams message ("it's the 20th") lose against the 2026 policy,
   which is confirmed by the year-end checklist and enforced by a ServiceNow rule.
-- The 2025 policy is flagged **Superseded**, the Dutch policy **Wrong country**.
+- The 2025 policy is flagged **Superseded**, the Dutch policy **Wrong country**, the 2027 policy (12th)
+  **Not yet in effect**.
+- Set the "as of" date to 2027-01-15 → *"12th of December"*; the ServiceNow rule and checklist still saying
+  the 15th are outranked. Set it to 2025-06-01 → *"20th of December"*.
 
-`npm run check:scorer` asserts these outcomes.
+`npm run check:scorer` asserts these outcomes at all three dates.
 
 ## Run it
 
@@ -98,7 +112,7 @@ clarifying questions, heuristic search brief). To use Gemini on Google Cloud Ver
 | `GOOGLE_APPLICATION_CREDENTIALS` | path to a service-account JSON |
 | `GEMINI_MODEL` | defaults to `gemini-2.5-flash` |
 
-Other scripts: `npm run build`, `npm run lint`, `npm run check:scorer`.
+Other scripts: `npm run build`, `npm run lint`, `npm run check:scorer`, `npm run check:links` (re-checks links in the demo corpus; needs internet).
 
 ## Run inside Teams / Outlook
 

@@ -4,8 +4,11 @@
  * fit = 100 × (w.relevance·relevance + w.recency·recency + w.scope·scope + w.authority·authority + w.ownerActive·ownerActive)
  *       + link bonus − penalties (superseded, conflict loser, out of scope). NOT clamped.
  *
- * Recency is relative to the newest document found: half-life = age of that document (days), at least 14 days.
- * Display: fits are shifted by an offset and normalised by the best result; results below the threshold are hidden.
+ * Recency is centred on the brief's time point (reference_date): a document valid on that date scores 1, and the
+ * score halves every half-life the document is further away (before OR after). The half-life adapts to the batch
+ * (median distance of the documents found), never below 14 days.
+ * Display: fits are shifted by an offset and normalised by the best result. That normalised value is only used to
+ * hide results far below the best one; it is never shown as the score.
  *
  * Every adjustment adds a plain-language entry to `reasons` so the UI can show WHY a document ranks where it does.
  */
@@ -24,8 +27,14 @@ import type {
 
 export const SCORING = {
   weights: { relevance: 0.4, recency: 0.2, scope: 0.2, authority: 0.15, ownerActive: 0.05 },
-  penalties: { superseded: 30, conflictLoser: 20, outOfScope: 25 },
-  recency: { minHalfLifeDays: 14, expiredMultiplier: 0.5 },
+  penalties: { superseded: 30, conflictLoser: 20, outOfScope: 25, notYetEffective: 25 },
+  recency: {
+    minHalfLifeDays: 14,
+    /** Half-life = this quantile of all candidates' distances to the reference date (0.5 = median). */
+    halfLifeQuantile: 0.5,
+    /** Flag as outdated when a past document is more than this many half-lives away. */
+    outdatedAfterHalfLives: 2,
+  },
   /** Bonus points for verified working links in the text (scaled by the share of working links). */
   linkBonus: { points: 5 },
   display: {
@@ -77,19 +86,41 @@ function daysBetween(fromIso: string, toIso: string): number {
   return ms / (1000 * 60 * 60 * 24);
 }
 
-/** Latest of effective_from / last_modified, never later than the reference date. */
-function docDate(doc: DocumentRecord, referenceDate: string): string {
-  const dates = [doc.effective_from, doc.last_modified].filter((d): d is string => !!d && d <= referenceDate);
-  return dates.sort().at(-1) ?? doc.last_modified;
+type TimeFit =
+  | { kind: "valid"; days: 0; from: string; until: string } // explicit validity window contains the date
+  | { kind: "past"; days: number; date: string } // latest date on or before the reference date
+  | { kind: "expired"; days: number; until: string } // validity ended before the reference date
+  | { kind: "future"; days: number; date: string }; // not yet in effect / did not exist yet on the reference date
+
+/** Where does a document sit relative to the reference date? */
+export function timeFit(doc: DocumentRecord, ref: string): TimeFit {
+  const from = doc.effective_from;
+  const until = doc.effective_until ?? undefined;
+  if (from && until && from <= ref && ref <= until) return { kind: "valid", days: 0, from, until };
+  if (from && from > ref) return { kind: "future", days: daysBetween(ref, from), date: from };
+  if (until && until < ref) return { kind: "expired", days: daysBetween(until, ref), until };
+  const onOrBefore = [from, doc.last_modified].filter((d): d is string => !!d && d <= ref).sort();
+  const latest = onOrBefore.at(-1);
+  if (latest) return { kind: "past", days: daysBetween(latest, ref), date: latest };
+  return { kind: "future", days: daysBetween(ref, doc.last_modified), date: doc.last_modified };
 }
 
-type RecencyContext = { newest: string; halfLifeDays: number };
+type RecencyContext = { ref: string; halfLifeDays: number; fits: Map<string, TimeFit> };
 
-/** The newest document found is the reference; its age (in days) becomes the half-life, min. 14 days. */
+function quantile(sorted: number[], q: number): number {
+  if (!sorted.length) return 0;
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+/** Half-life adapts to how spread out the documents found are around the reference date (min. 14 days). */
 function recencyContext(brief: SearchBrief, candidates: Candidate[]): RecencyContext {
-  const newest = candidates.map((d) => docDate(d, brief.reference_date)).sort().at(-1) ?? brief.reference_date;
-  const halfLifeDays = Math.max(SCORING.recency.minHalfLifeDays, daysBetween(newest, brief.reference_date));
-  return { newest, halfLifeDays };
+  const fits = new Map(candidates.map((d) => [d.id, timeFit(d, brief.reference_date)]));
+  const distances = [...fits.values()].map((f) => f.days).sort((a, b) => a - b);
+  const halfLifeDays = Math.max(SCORING.recency.minHalfLifeDays, quantile(distances, SCORING.recency.halfLifeQuantile));
+  return { ref: brief.reference_date, halfLifeDays, fits };
 }
 
 const URL_RE = /https?:\/\/[^\s"'<>)\]]+/g;
@@ -142,25 +173,30 @@ function scoreRelevance(brief: SearchBrief, doc: DocumentRecord, reasons: string
   return clamp(score, 0, 1);
 }
 
-function scoreRecency(brief: SearchBrief, doc: DocumentRecord, ctx: RecencyContext, reasons: string[], flags: ResultFlag[]): number {
-  const latest = docDate(doc, brief.reference_date);
-  const behind = Math.max(0, daysBetween(latest, ctx.newest));
-  let score = Math.pow(0.5, behind / ctx.halfLifeDays);
+function scoreRecency(doc: DocumentRecord, ctx: RecencyContext, reasons: string[], flags: ResultFlag[]): number {
+  const t = ctx.fits.get(doc.id)!;
   const hl = Math.round(ctx.halfLifeDays);
-  reasons.push(
-    behind < 1
-      ? `Newest source found (${latest}) — sets the recency half-life to ${hl} days`
-      : `Last updated ${latest}, ${Math.round(behind)} days older than the newest source (half-life ${hl} days)`,
-  );
-  const months = daysBetween(latest, brief.reference_date) / 30.44;
-
-  if (doc.effective_until && doc.effective_until < brief.reference_date) {
-    score *= SCORING.recency.expiredMultiplier;
-    flags.push("outdated");
-    reasons.push(`Expired on ${doc.effective_until}`);
-  } else if (months > 18) {
-    flags.push("outdated");
-    reasons.push("Not updated in over 18 months — may be stale");
+  const score = Math.pow(0.5, t.days / ctx.halfLifeDays);
+  const d = Math.round(t.days);
+  switch (t.kind) {
+    case "valid":
+      reasons.push(`In effect on ${ctx.ref} (valid ${t.from} → ${t.until})`);
+      break;
+    case "past":
+      reasons.push(`Last updated ${t.date}, ${d} days before ${ctx.ref} (half-life ${hl} days)`);
+      if (t.days > SCORING.recency.outdatedAfterHalfLives * ctx.halfLifeDays) {
+        flags.push("outdated");
+        reasons.push(`More than ${SCORING.recency.outdatedAfterHalfLives} half-lives older than ${ctx.ref} — may be stale`);
+      }
+      break;
+    case "expired":
+      flags.push("outdated");
+      reasons.push(`Expired on ${t.until}, ${d} days before ${ctx.ref} (half-life ${hl} days)`);
+      break;
+    case "future":
+      flags.push("not_yet_effective");
+      reasons.push(`Not yet in effect on ${ctx.ref} — starts ${t.date}, ${d} days later (half-life ${hl} days)`);
+      break;
   }
   return clamp(score, 0, 1);
 }
@@ -210,8 +246,12 @@ function baseFit(f: FactorScores, ownerActive: number): number {
 /** Score candidates, detect conflicts, apply penalties, and re-rank. */
 export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { results: ScoredResult[]; conflicts: Conflict[] } {
   const recency = recencyContext(brief, candidates);
+  // A document only supersedes another once it is itself in effect on the reference date.
   const supersededBy = new Map<string, DocumentRecord>();
-  for (const d of candidates) for (const id of d.supersedes ?? []) supersededBy.set(id, d);
+  for (const d of candidates) {
+    if (recency.fits.get(d.id)?.kind === "future") continue;
+    for (const id of d.supersedes ?? []) supersededBy.set(id, d);
+  }
 
   // Pass 1: factor scores + base fit + superseded penalty.
   const results: ScoredResult[] = candidates.map((doc) => {
@@ -219,7 +259,7 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
     const flags: ResultFlag[] = [];
     const factors: FactorScores = {
       relevance: round2(scoreRelevance(brief, doc, reasons)),
-      recency: round2(scoreRecency(brief, doc, recency, reasons, flags)),
+      recency: round2(scoreRecency(doc, recency, reasons, flags)),
       scope: round2(scoreScope(brief, doc, reasons, flags)),
       authority: round2(scoreAuthority(doc, reasons)),
     };
@@ -239,6 +279,10 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
     if (flags.includes("out_of_scope")) {
       fit -= SCORING.penalties.outOfScope;
       reasons.push(`Outside your scope (−${SCORING.penalties.outOfScope})`);
+    }
+    if (flags.includes("not_yet_effective")) {
+      fit -= SCORING.penalties.notYetEffective;
+      reasons.push(`Not valid yet on the chosen date (−${SCORING.penalties.notYetEffective})`);
     }
     return { doc, fit, relative: 0, shown: false, factors, reasons, flags };
   });
@@ -279,8 +323,13 @@ function normalise(results: ScoredResult[]) {
   });
 }
 
+/** Superseded, out-of-scope and not-yet-effective documents never decide the answer. */
+function isUsable(r: ScoredResult): boolean {
+  return !r.flags.includes("superseded") && !r.flags.includes("out_of_scope") && !r.flags.includes("not_yet_effective");
+}
+
 function isConflictEligible(r: ScoredResult): boolean {
-  return !r.flags.includes("superseded") && !r.flags.includes("out_of_scope") && !r.doc.scope.client;
+  return isUsable(r) && !r.doc.scope.client;
 }
 
 function detectConflicts(results: ScoredResult[]): Conflict[] {
@@ -315,7 +364,7 @@ function detectConflicts(results: ScoredResult[]): Conflict[] {
       claim_key: key,
       winner_id: winner.r.doc.id,
       loser_ids: losers.map((l) => l.r.doc.id),
-      explanation: `${agreeing.length} source${agreeing.length > 1 ? "s say" : " says"} ${formatClaim(key, winner.claim.value)}, ${losers.length} say${losers.length > 1 ? "" : "s"} otherwise. "${winner.r.doc.title}" wins: ${why}. Older or less authoritative sources: ${loserDesc}.`,
+      explanation: `${agreeing.length} source${agreeing.length > 1 ? "s say" : " says"} ${formatClaim(key, winner.claim.value)}, ${losers.length} say${losers.length > 1 ? "" : "s"} otherwise. "${winner.r.doc.title}" wins: ${why}. Outranked sources: ${loserDesc}.`,
     });
   }
   return conflicts;
@@ -323,7 +372,7 @@ function detectConflicts(results: ScoredResult[]): Conflict[] {
 
 /** Build the final answer from winning claims plus client-specific exceptions. */
 export function buildAnswer(brief: SearchBrief, results: ScoredResult[], conflicts: Conflict[]): SearchResponse["answer"] {
-  const usable = results.filter((r) => !r.flags.includes("superseded") && !r.flags.includes("out_of_scope") && !r.flags.includes("conflict_loser"));
+  const usable = results.filter((r) => isUsable(r) && !r.flags.includes("conflict_loser"));
   const top = usable.find((r) => !r.doc.scope.client) ?? usable[0];
   if (!top || !top.doc.claims.length) {
     return { text: "No trusted answer found for this scope. Try adjusting the country or client.", citations: [], rely_on: "" };
@@ -349,7 +398,15 @@ export function buildAnswer(brief: SearchBrief, results: ScoredResult[], conflic
     citations.push(exception.doc.id);
   } else {
     text = `The ${claimLabel(key)}${country} is the ${formatClaim(key, standard.value)}.`;
-    const otherExceptions = results.filter((r) => r.doc.scope.client && r.flags.includes("out_of_scope") && !r.flags.includes("superseded") && r.factors.scope === 0 && r.doc.scope.country === brief.scope.country);
+    const otherExceptions = results.filter(
+      (r) =>
+        r.doc.scope.client &&
+        r.flags.includes("out_of_scope") &&
+        !r.flags.includes("superseded") &&
+        !r.flags.includes("not_yet_effective") &&
+        r.factors.scope === 0 &&
+        r.doc.scope.country === brief.scope.country,
+    );
     if (otherExceptions.length) {
       text += ` Note: client-specific exceptions exist for ${otherExceptions.map((r) => r.doc.scope.client).join(", ")}.`;
     }
@@ -360,14 +417,14 @@ export function buildAnswer(brief: SearchBrief, results: ScoredResult[], conflic
   const losers = winning?.loser_ids.length ?? 0;
   const rely_on =
     `Based on ${kinds.length} agreeing source${kinds.length > 1 ? "s" : ""} (${kinds.join(", ")})` +
-    (standardDoc.doc.effective_from ? `, led by a document effective since ${standardDoc.doc.effective_from}` : "") +
+    (standardDoc.doc.effective_from ? `, led by a document in effect since ${standardDoc.doc.effective_from}` : "") +
     (losers ? `. ${losers} conflicting source${losers > 1 ? "s were" : " was"} outranked as older or less authoritative.` : ".");
 
   return { text, citations: Array.from(new Set(citations)), rely_on };
 }
 
 export function pickExpert(results: ScoredResult[]): Expert | undefined {
-  const top = results.find((r) => !r.flags.includes("out_of_scope") && !r.flags.includes("superseded"));
+  const top = results.find(isUsable);
   if (!top || !top.doc.owner.active) return undefined;
   const owns = top.doc.source_type === "policy" ? "owns this policy" : `owns "${top.doc.title}"`;
   return { name: top.doc.owner.name, role: top.doc.owner.role, reason: owns };

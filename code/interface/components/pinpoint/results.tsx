@@ -53,7 +53,8 @@ const FLAG_META: Record<ResultFlag, { label: string; tone: "conflict" | "warning
   conflict_loser: { label: "Conflicts", tone: "conflict", tip: "Contradicts a more trusted source." },
   out_of_scope: { label: "Out of scope", tone: "neutral", tip: "Applies to a different country or client." },
   owner_inactive: { label: "Owner inactive", tone: "warning", tip: "Nobody currently maintains this." },
-  outdated: { label: "Outdated", tone: "warning", tip: "Old or expired content." },
+  outdated: { label: "Outdated", tone: "warning", tip: "Expired, or far older than the chosen date." },
+  not_yet_effective: { label: "Not yet in effect", tone: "warning", tip: "Only valid after the chosen date — change the date to see it apply." },
 };
 
 function flagLabel(flag: ResultFlag, r: ScoredResult): string {
@@ -85,15 +86,16 @@ export function FlagBadges({ r }: { r: ScoredResult }) {
   );
 }
 
-function fitTone(relative: number) {
-  if (relative >= 0.85) return "text-trusted";
-  if (relative >= 0.7) return "text-warning";
+/** Colour by the absolute fit, never by the share of the best result. */
+function fitTone(fit: number) {
+  if (fit >= 75) return "text-trusted";
+  if (fit >= 50) return "text-warning";
   return "text-conflict";
 }
 
 const FACTORS: { key: keyof ScoredResult["factors"]; label: string; tip: string }[] = [
   { key: "relevance", label: "Relevance", tip: "How well the document matches your question (40%)" },
-  { key: "recency", label: "Recency", tip: "How recently it was updated or took effect (20%)" },
+  { key: "recency", label: "Recency", tip: "How close it is to the chosen date — in effect on that date = 100, further before or after = lower (20%)" },
   { key: "scope", label: "Scope", tip: "Does it apply to your country and client? (20%)" },
   { key: "authority", label: "Authority", tip: "Official policy > manual > email > chat (15%)" },
 ];
@@ -155,10 +157,10 @@ export function ResultCard({
               </div>
               <h3 className="text-sm font-semibold leading-snug text-ink">{r.doc.title}</h3>
             </div>
-            <Tooltip content="Fit score: weighted relevance, recency, scope and authority, plus link bonus, minus penalties (not capped). Below: share of the best result in this search.">
+            <Tooltip content="Fit score: weighted relevance, recency, scope and authority, plus link bonus, minus penalties. Not capped and not relative to other results.">
               <div className="shrink-0 text-right">
-                <div className={cn("text-2xl font-bold leading-none tabular-nums", fitTone(r.relative ?? r.fit / 100))}>{r.fit}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted">{r.relative === undefined ? "fit" : `fit · ${Math.round(r.relative * 100)}% of best`}</div>
+                <div className={cn("text-2xl font-bold leading-none tabular-nums", fitTone(r.fit))}>{r.fit}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted">fit</div>
               </div>
             </Tooltip>
           </div>
@@ -242,7 +244,7 @@ export function ConflictBanner({ conflicts, results }: { conflicts: Conflict[]; 
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-conflict" aria-hidden />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-conflict">
-            {losers.length + 1} sources disagree — {losers.length} outdated source{losers.length > 1 ? "s" : ""} say{losers.length > 1 ? "" : "s"} the {claimOf(losers[0])}
+            {losers.length + 1} sources disagree — {winner ? claimOf(winner) : "?"} wins over {Array.from(new Set(losers.map(claimOf))).join(" / ")}
           </div>
           <div className="text-xs text-ink/80">{open ? "Hide comparison" : "Click to compare side by side and see why one wins"}</div>
         </div>
@@ -273,7 +275,7 @@ export function ConflictBanner({ conflicts, results }: { conflicts: Conflict[]; 
   );
 }
 
-export function AnswerCard({ response, compact }: { response: SearchResponse; compact?: boolean }) {
+export function AnswerCard({ response, compact, onCite }: { response: SearchResponse; compact?: boolean; onCite?: (docId: string) => void }) {
   const [copied, setCopied] = useState(false);
   const titles = new Map(response.results.map((r) => [r.doc.id, r.doc]));
   const cited = response.answer.citations.map((id) => titles.get(id)).filter(Boolean) as DocumentRecord[];
@@ -313,6 +315,11 @@ export function AnswerCard({ response, compact }: { response: SearchResponse; co
             <a
               key={d.id}
               href={`#doc-${d.id}`}
+              onClick={(e) => {
+                if (!onCite) return;
+                e.preventDefault();
+                onCite(d.id);
+              }}
               className="inline-flex max-w-full items-center gap-1 truncate rounded border border-border bg-surface px-1.5 py-0.5 text-[11px] text-ink hover:border-primary/40"
             >
               <span className="font-semibold text-primary">[{i + 1}]</span>

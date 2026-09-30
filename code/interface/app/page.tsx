@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/client/cn";
 import { usePinpoint } from "@/lib/client/use-pinpoint";
+import { DEMO_TODAY } from "@/lib/config";
 import { searchBriefSchema } from "@/lib/schemas";
 
 function Handle() {
@@ -28,7 +29,7 @@ export default function Home() {
     if (!raw) return;
     try {
       const parsed = searchBriefSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) loadBrief(parsed.data);
+      if (parsed.success) loadBrief({ ...parsed.data, reference_date: parsed.data.reference_date ?? DEMO_TODAY });
     } catch {
       /* ignore malformed query */
     }

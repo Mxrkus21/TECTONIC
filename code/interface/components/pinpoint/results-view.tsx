@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, SearchX } from "lucide-react";
 import { SCORING } from "@/lib/evaluate";
 import { cn } from "@/lib/client/cn";
@@ -9,6 +9,8 @@ import { AnswerCard, ConflictBanner, ExpertCard, ResultCard, ResultsSkeleton } f
 export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact?: boolean; limit?: number }) {
   const [showHidden, setShowHidden] = useState(false);
   const r = s.response;
+  // Collapse the "below threshold" list again for every new search.
+  useEffect(() => setShowHidden(false), [r]);
   if (!r) {
     if (s.searchLoading || s.briefLoading) return <ResultsSkeleton count={compact ? 2 : 4} />;
     return (
@@ -31,7 +33,14 @@ export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact
   return (
     <div className={s.searchLoading ? "space-y-3 opacity-60 transition-opacity" : "space-y-3 transition-opacity"}>
       {!compact && banner}
-      <AnswerCard response={r} compact={compact} />
+      <AnswerCard
+        response={r}
+        compact={compact}
+        onCite={(id) => {
+          if (hidden.some((x) => x.doc.id === id)) setShowHidden(true);
+          requestAnimationFrame(() => document.getElementById(`doc-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+        }}
+      />
       <div className="flex items-baseline justify-between pt-1">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
           {compact ? `Top ${results.length} of ${r.results.length} sources` : `${visible.length} of ${r.results.length} sources within ${pct}% of the best`}

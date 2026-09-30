@@ -7,7 +7,8 @@ import "server-only";
 import { createVertex } from "@ai-sdk/google-vertex";
 import { generateObject, simulateReadableStream, streamText, type LanguageModel, type ModelMessage } from "ai";
 import { MockLanguageModelV2 } from "ai/test";
-import { llmBriefSchema, type BriefRequest } from "@/lib/schemas";
+import { isValidIsoDate, llmBriefSchema, type BriefRequest } from "@/lib/schemas";
+import { detectTimeScope } from "./time-scope";
 import { keywords } from "@/lib/text/keywords";
 import { DEMO_TODAY } from "@/lib/config";
 import type { SearchBrief } from "@/lib/types";
@@ -59,6 +60,7 @@ export function streamClarify(messages: ModelMessage[]) {
   return streamText({ model: model(), system: CLARIFY_SYSTEM, messages });
 }
 
+
 /** Deterministic brief builder used in mock mode (and as a safety net if the LLM call fails). */
 export function heuristicBrief(input: BriefRequest): Omit<SearchBrief, "reference_date"> {
   const question = input.messages.find((m) => m.role === "user")?.text ?? "";
@@ -76,7 +78,9 @@ export function heuristicBrief(input: BriefRequest): Omit<SearchBrief, "referenc
 
 /** Turns the conversation into a structured SearchBrief. */
 export async function extractBrief(input: BriefRequest): Promise<SearchBrief> {
-  const reference_date = input.reference_date ?? DEMO_TODAY;
+  const question = input.messages.find((m) => m.role === "user")?.text ?? "";
+  // Priority: a time explicitly named in the question > the client's date > today.
+  const reference_date = detectTimeScope(question) ?? input.reference_date ?? DEMO_TODAY;
   if (!isLlmConfigured()) return { ...heuristicBrief(input), reference_date };
 
   const transcript = input.messages.map((m) => `${m.role.toUpperCase()}: ${m.text}`).join("\n");
@@ -94,7 +98,7 @@ export async function extractBrief(input: BriefRequest): Promise<SearchBrief> {
       topic_tags: object.topic_tags.map((t) => t.toLowerCase()).slice(0, 8),
       // Explicit chip choices win over anything the model inferred.
       scope: { country: input.clarify.country ?? object.country, client: input.clarify.client ?? object.client },
-      reference_date,
+      reference_date: detectTimeScope(question) ?? (object.reference_date && isValidIsoDate(object.reference_date) ? object.reference_date : reference_date),
     };
   } catch (err) {
     console.error("extractBrief: LLM call failed, using heuristic brief", err);

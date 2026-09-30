@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/client/cn";
 import { messageText, type Clarify, type PinpointSession } from "@/lib/client/use-pinpoint";
+import { DEMO_TODAY } from "@/lib/config";
+import { isValidIsoDate } from "@/lib/schemas";
 import type { SearchBrief } from "@/lib/types";
 
 export const DEMO_QUESTION = "What is the deadline for submitting December payroll changes?";
@@ -215,12 +217,16 @@ export function BriefCard({ s, compact }: { s: PinpointSession; compact?: boolea
           onChange={(v) => setScope({ client: v || undefined })}
         />
         <label className="inline-flex items-center gap-1 rounded-full border border-border bg-card py-0.5 pl-2.5 pr-1.5 text-xs">
-          <span className="text-muted">Date</span>
+          <span className="text-muted" title="Documents in effect on this date rank highest; the further away, the lower">As of</span>
           <input
             type="date"
             className="bg-transparent py-0.5 font-semibold text-ink outline-none"
             value={b.reference_date}
-            onChange={(e) => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && update({ reference_date: e.target.value })}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (!v) update({ reference_date: DEMO_TODAY }); // cleared → back to today
+              else if (isValidIsoDate(v)) update({ reference_date: v });
+            }}
           />
         </label>
       </div>
