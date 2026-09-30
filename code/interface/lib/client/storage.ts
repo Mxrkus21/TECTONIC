@@ -19,14 +19,24 @@ export function writeJson(key: string, value: unknown) {
   }
 }
 
-/** useState that mirrors to localStorage and syncs across hook instances in the same tab. */
-export function useStoredState<T>(key: string, fallback: T) {
+/**
+ * useState that mirrors to localStorage. Stored data is untrusted (older versions, manual edits):
+ * `sanitize` must turn whatever was stored into a valid value, dropping malformed entries.
+ */
+export function useStoredState<T>(key: string, fallback: T, sanitize: (raw: unknown) => T) {
   const [value, setValue] = useState<T>(fallback);
 
   useEffect(() => {
-    setValue(readJson(key, fallback));
+    const load = () => {
+      try {
+        return sanitize(readJson<unknown>(key, fallback));
+      } catch {
+        return fallback;
+      }
+    };
+    setValue(load());
     const onChange = (e: Event) => {
-      if ((e as CustomEvent<string>).detail === key) setValue(readJson(key, fallback));
+      if ((e as CustomEvent<string>).detail === key) setValue(load());
     };
     window.addEventListener("pp-storage", onChange);
     return () => window.removeEventListener("pp-storage", onChange);

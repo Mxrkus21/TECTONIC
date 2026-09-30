@@ -7,6 +7,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEMO_TODAY } from "@/lib/config";
+import { documentRecordSchema } from "@/lib/schemas";
 import type { DocumentRecord, SearchBrief, SearchResponse } from "@/lib/types";
 import { useStoredState } from "./storage";
 
@@ -26,6 +27,37 @@ export type HistoryEntry = {
 export type Feedback = Record<string, "up" | "down">;
 
 const MAX_HISTORY = 20;
+
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** Drop history entries that do not have the shape the UI relies on. */
+function sanitizeHistory(raw: unknown): HistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (e): e is HistoryEntry =>
+        isObj(e) &&
+        typeof e.id === "string" &&
+        typeof e.title === "string" &&
+        typeof e.createdAt === "string" &&
+        Array.isArray(e.messages) &&
+        e.messages.every((m) => isObj(m) && typeof m.id === "string" && Array.isArray(m.parts)) &&
+        isObj(e.clarify) &&
+        (e.brief === null || (isObj(e.brief) && typeof e.brief.question === "string" && Array.isArray(e.brief.topic_tags) && isObj(e.brief.scope))) &&
+        (e.response === null || (isObj(e.response) && Array.isArray(e.response.results) && Array.isArray(e.response.conflicts) && isObj(e.response.answer))),
+    )
+    .slice(0, MAX_HISTORY);
+}
+
+function sanitizePins(raw: unknown): DocumentRecord[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((d): d is DocumentRecord => documentRecordSchema.safeParse(d).success);
+}
+
+function sanitizeFeedback(raw: unknown): Feedback {
+  if (!isObj(raw)) return {};
+  return Object.fromEntries(Object.entries(raw).filter(([k, v]) => k.length <= 100 && (v === "up" || v === "down"))) as Feedback;
+}
 
 export function messageText(m: UIMessage): string {
   return m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
@@ -49,9 +81,9 @@ export function usePinpoint() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [history, setHistory] = useStoredState<HistoryEntry[]>("pp-history", []);
-  const [pins, setPins] = useStoredState<DocumentRecord[]>("pp-pins", []);
-  const [feedback, setFeedback] = useStoredState<Feedback>("pp-feedback", {});
+  const [history, setHistory] = useStoredState<HistoryEntry[]>("pp-history", [], sanitizeHistory);
+  const [pins, setPins] = useStoredState<DocumentRecord[]>("pp-pins", [], sanitizePins);
+  const [feedback, setFeedback] = useStoredState<Feedback>("pp-feedback", {}, sanitizeFeedback);
 
   const searchSeq = useRef(0);
 

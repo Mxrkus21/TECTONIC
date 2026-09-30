@@ -1,15 +1,26 @@
 import { NextResponse } from "next/server";
-import { convertToModelMessages, type UIMessage } from "ai";
+import { convertToModelMessages } from "ai";
 import { streamClarify } from "@/lib/llm";
-import { chatRequestSchema } from "@/lib/schemas";
+import { chatRequestSchema, toTextMessages } from "@/lib/schemas";
+import { readJsonBody, serverError } from "@/lib/security/http";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export async function POST(req: Request) {
-  const parsed = chatRequestSchema.safeParse(await req.json().catch(() => null));
+  const limited = rateLimit(req, "chat", 30);
+  if (limited) return limited;
+
+  const body = await readJsonBody(req);
+  if (!body.ok) return body.response;
+  const parsed = chatRequestSchema.safeParse(body.data);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  // Only user/assistant text parts are forwarded to the model.
-  const messages = parsed.data.messages
-    .filter((m) => m.role !== "system")
-    .map((m) => ({ ...m, parts: m.parts.filter((p) => p.type === "text") })) as UIMessage[];
-  const result = streamClarify(convertToModelMessages(messages));
-  return result.toUIMessageStreamResponse();
+
+  // Rebuilt from scratch: user/assistant roles and plain text only.
+  const messages = toTextMessages(parsed.data.messages);
+  if (!messages.some((m) => m.role === "user")) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+
+  try {
+    return streamClarify(convertToModelMessages(messages)).toUIMessageStreamResponse();
+  } catch (err) {
+    return serverError("chat", err);
+  }
 }
