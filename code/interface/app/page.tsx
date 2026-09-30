@@ -42,7 +42,7 @@ export default function Home() {
   }, [hasResults]);
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-screen flex-col overflow-hidden">
       <Header
         right={
           <a href="/panel" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-primary">
@@ -50,7 +50,7 @@ export default function Home() {
           </a>
         }
       />
-      <PanelGroup direction="horizontal" className="min-h-0 flex-1" autoSaveId={undefined}>
+      <PanelGroup direction="horizontal" className="min-h-0 flex-1">
         <Panel defaultSize={16} minSize={12} maxSize={25} className="flex flex-col bg-card">
           <div className="p-3">
             <Button className="w-full" onClick={s.reset}>

@@ -192,7 +192,7 @@ export function BriefCard({ s, compact }: { s: PinpointSession; compact?: boolea
 
   return (
     <Card className="border-primary/30 p-3.5">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
           <Search className="h-3.5 w-3.5" aria-hidden /> Search brief
         </div>
@@ -321,10 +321,11 @@ export function ChatThread({ s, compact }: { s: PinpointSession; compact?: boole
   const bottom = useRef<HTMLDivElement>(null);
   const streaming = s.chatStatus === "submitted" || s.chatStatus === "streaming";
   useEffect(() => {
-    if (!compact) bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!compact) bottom.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [s.messages, s.brief, s.clarifyDone, compact]);
 
-  const scopeSummary = [s.clarify.country ? `Country: ${s.clarify.country}` : "Country: any", s.clarify.client ? `Client: ${s.clarify.client}` : "Client: none"].join(" · ");
+  const scope = s.brief?.scope ?? s.clarify;
+  const scopeSummary = [scope.country ? `Country: ${scope.country}` : "Country: any", scope.client ? `Client: ${scope.client}` : "Client: none"].join(" · ");
 
   return (
     <div className="space-y-3">
