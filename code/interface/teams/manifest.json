@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
+  "version": "0.1.0",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "developer": {
+    "name": "TECTONIC hackathon team",
+    "websiteUrl": "https://pinpoint.example.com",
+    "privacyUrl": "https://pinpoint.example.com/privacy",
+    "termsOfUseUrl": "https://pinpoint.example.com/terms"
+  },
+  "name": { "short": "Pinpoint", "full": "Pinpoint — trusted knowledge finder" },
+  "description": {
+    "short": "Find it. Understand it. Trust it.",
+    "full": "Ask a payroll question and get the answer from the sources you can trust, with a transparent fit score, conflicts and the right expert to ask."
+  },
+  "icons": { "color": "color.png", "outline": "outline.png" },
+  "accentColor": "#0F2F6B",
+  "staticTabs": [
+    {
+      "entityId": "pinpoint-home",
+      "name": "Pinpoint",
+      "contentUrl": "https://pinpoint.example.com/",
+      "websiteUrl": "https://pinpoint.example.com/",
+      "scopes": ["personal"],
+      "context": ["personalTab"]
+    }
+  ],
+  "configurableTabs": [
+    {
+      "configurationUrl": "https://pinpoint.example.com/panel",
+      "canUpdateConfiguration": false,
+      "scopes": ["groupChat", "team"],
+      "context": ["meetingSidePanel", "meetingChatTab", "channelTab"]
+    }
+  ],
+  "permissions": ["identity"],
+  "validDomains": ["pinpoint.example.com"],
+  "webApplicationInfo": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "resource": "api://pinpoint.example.com/00000000-0000-0000-0000-000000000000"
+  },
+  "authorization": { "permissions": { "resourceSpecific": [] } }
+}
