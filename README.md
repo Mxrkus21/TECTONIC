@@ -156,4 +156,4 @@ code/interface/
 
 ## Team
 
-TECTONIC — _add team member names here_.
+TECTONIC — _Markus Baier, Temmuz Tan Cataloluk, Henry Sommer_.
