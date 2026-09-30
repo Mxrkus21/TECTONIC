@@ -9,7 +9,7 @@
   },
   "search": {
     "site_ids": [],
-    "file_types": ["pdf", "docx", "xlsx", "csv", "json", "txt", "md"],
+    "file_types": ["pdf", "docx", "xlsx", "csv", "json", "txt", "md", "png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"],
     "modified_after": null,
     "max_candidates": 25,
     "max_documents": 8,

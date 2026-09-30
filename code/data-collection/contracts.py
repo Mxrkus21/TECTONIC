@@ -64,7 +64,22 @@ class SearchContext(ContractModel):
 class SearchOptions(ContractModel):
     site_ids: List[str] = Field(default_factory=list)
     file_types: List[str] = Field(
-        default_factory=lambda: ["pdf", "docx", "xlsx", "csv", "json", "txt", "md"]
+        default_factory=lambda: [
+            "pdf",
+            "docx",
+            "xlsx",
+            "csv",
+            "json",
+            "txt",
+            "md",
+            "png",
+            "jpg",
+            "jpeg",
+            "tif",
+            "tiff",
+            "bmp",
+            "gif",
+        ]
     )
     modified_after: Optional[datetime] = None
     max_candidates: int = Field(default=25, ge=1, le=100)
