@@ -1,0 +1,6 @@
+pydantic>=2.9,<3
+fastapi>=0.115,<1
+uvicorn[standard]>=0.32,<1
+google-cloud-documentai>=3.6,<4
+pypdf>=5,<7
+openpyxl>=3.1,<4

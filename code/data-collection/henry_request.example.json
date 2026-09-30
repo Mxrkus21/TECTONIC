@@ -1,0 +1,18 @@
+{
+  "request_id": "henry-demo-001",
+  "question": "How many paid leave days can I still take this year?",
+  "user_context": {
+    "employee_id": "EMP-1042",
+    "country": "BE",
+    "language": "en",
+    "department": "Engineering"
+  },
+  "search": {
+    "site_ids": [],
+    "file_types": ["pdf", "docx", "xlsx", "csv", "json", "txt", "md"],
+    "modified_after": null,
+    "max_candidates": 25,
+    "max_documents": 8,
+    "include_full_text": true
+  }
+}
