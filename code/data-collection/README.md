@@ -1,10 +1,44 @@
-# TECTONIC Data Collection
+# Optional Data Collection Integration
 
-Provider-neutral document retrieval and text extraction for the Pinpoint search
-experience. The service accepts the interface's `SearchBrief`, finds relevant
-documents, extracts their complete text and returns a stable `EvidenceBundle`.
+> **Supporting module:** the main Pinpoint product and hackathon experience live
+> in [`code/interface`](../interface). This service is not required for the
+> default demo. It demonstrates how the product can connect to real enterprise
+> document sources when an organization chooses to enable that capability.
 
-## What it does
+The interface remains the primary product: it understands the user's question,
+explains source trust and presents the final experience. This module provides an
+optional integration boundary behind it. It accepts the interface's
+`SearchBrief`, retrieves relevant documents, extracts their text and returns a
+provider-neutral `EvidenceBundle` for downstream use.
+
+## Role in Pinpoint
+
+| Main interface | Optional data collection support |
+| --- | --- |
+| User experience and search brief | External provider connectivity |
+| Trust explanation and results | Document discovery and download |
+| Stable built-in hackathon demo | Full-text extraction and OCR |
+| Final presentation layer | Normalized evidence and metadata |
+
+This separation keeps the main demo fast and dependable while showing that the
+same product can be extended beyond fixture data without redesigning the UI.
+
+```mermaid
+flowchart LR
+  UI[Main Pinpoint interface] --> D[Built-in demo flow]
+  UI -. Optional integration .-> API[Data collection API]
+  API --> P{Provider}
+  P --> G[Google Drive]
+  P --> M[Microsoft Graph]
+  P --> X[Mock provider]
+  G --> E[Extraction and OCR]
+  M --> E
+  X --> E
+  E --> B[EvidenceBundle]
+  B -. Available to the interface .-> UI
+```
+
+## What this module adds
 
 - Searches Google Drive, Microsoft Graph or deterministic mock data.
 - Downloads and extracts TXT, Markdown, JSON, CSV, PDF, DOCX and XLSX content.
@@ -13,19 +47,19 @@ documents, extracts their complete text and returns a stable `EvidenceBundle`.
 - Preserves source metadata, timestamps, hashes, warnings and retrieval scores.
 - Keeps provider credentials and API tokens on the server.
 
-```mermaid
-flowchart LR
-  UI[SearchBrief] --> API[FastAPI collector]
-  API --> P{Provider}
-  P --> G[Google Drive]
-  P --> M[Microsoft Graph]
-  P --> X[Mock]
-  G --> E[Extraction and OCR]
-  M --> E
-  X --> E
-  E --> R[Relevance ranking]
-  R --> B[EvidenceBundle]
-```
+## Demo positioning
+
+The recommended hackathon demo uses the main interface as the complete product.
+This folder can then be shown as technical proof that Pinpoint is ready to plug
+into real document systems:
+
+> Pinpoint works as a self-contained demo today. When real enterprise data is
+> available, the optional data-collection layer can retrieve documents from
+> Google Drive or Microsoft Graph, use OCR where necessary and pass structured
+> evidence into the same product experience.
+
+Enabling this service is therefore an integration choice, not a prerequisite
+for running or presenting Pinpoint.
 
 ## API
 
@@ -99,11 +133,11 @@ python -m unittest discover -s tests -v
 
 See [.env.example](.env.example) for the complete template.
 
-## Interface integration
+## Optional interface integration
 
-The browser should call a server-side interface route, never this service with
-the shared bearer token directly. A ready-to-copy Next.js route and exact setup
-instructions are included:
+If the integration is enabled, the browser should call a server-side interface
+route, never this service with the shared bearer token directly. A ready-to-copy
+Next.js route and exact setup instructions are included:
 
 - [nextjs-evidence-route.ts](nextjs-evidence-route.ts)
 - [INTEGRATION.md](INTEGRATION.md)
