@@ -1,0 +1,40 @@
+{
+  "name": "pinpoint",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "check:scorer": "tsx scripts/check-scorer.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google-vertex": "^3.0.180",
+    "@ai-sdk/react": "^2.0.274",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.2.0",
+    "ai": "^5.0.271",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.500.0",
+    "next": "^15.5.27",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-resizable-panels": "^3.0.6",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.5.27",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}
