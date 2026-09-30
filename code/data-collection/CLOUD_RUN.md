@@ -1,12 +1,12 @@
 # Cloud Run deployment
 
-The service accepts Henry's existing `SearchBrief` at:
+The service accepts the interface `SearchBrief` at:
 
 ```text
 POST /api/v1/evidence/collect
 ```
 
-The browser must not call this service directly. Henry's server route calls it
+The browser must not call this service directly. The interface server route calls it
 with `Authorization: Bearer <token>` and returns the downstream response to the
 browser.
 
@@ -41,7 +41,7 @@ service-account JSON key is copied into the image.
 The service identity needs `roles/documentai.apiUser` and access to both Secret
 Manager secrets. The service can be publicly reachable because the collection
 endpoint separately requires `DATA_COLLECTION_API_TOKEN`; keep that token only
-in Henry's server-side environment.
+in the interface's server-side environment.
 
 ## Verification
 
@@ -51,5 +51,5 @@ curl "$DATA_COLLECTION_API_URL/health"
 curl -X POST "$DATA_COLLECTION_API_URL/api/v1/evidence/collect" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DATA_COLLECTION_API_TOKEN" \
-  --data-binary @henry_search_brief.example.json
+  --data-binary @search_brief.example.json
 ```

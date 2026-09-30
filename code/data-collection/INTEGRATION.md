@@ -1,4 +1,4 @@
-# Henry interface handoff
+# Interface integration
 
 This connects the existing Next.js interface to the deployed data-collection
 service without exposing the collector token to the browser.
@@ -9,11 +9,11 @@ From the repository root:
 
 ```bash
 mkdir -p code/interface/app/api/evidence
-cp code/data-collection/henry-evidence-route.ts \
+cp code/data-collection/nextjs-evidence-route.ts \
   code/interface/app/api/evidence/route.ts
 ```
 
-## 2. Configure Henry's server
+## 2. Configure the interface server
 
 Add these values to `code/interface/.env.local`:
 
@@ -56,7 +56,7 @@ Collect real evidence:
 ```bash
 curl -X POST http://localhost:3000/api/evidence \
   -H "Content-Type: application/json" \
-  --data-binary @../data-collection/henry_search_brief.example.json
+  --data-binary @../data-collection/search_brief.example.json
 ```
 
 The response is an `EvidenceBundle`. Each returned document includes:

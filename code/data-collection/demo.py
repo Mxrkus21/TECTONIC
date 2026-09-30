@@ -10,14 +10,14 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from henry_adapter import HenrySearchBrief
+from adapter import SearchBrief
 from mock import MockDocumentProvider
 from providers.google_drive import google_drive_provider_from_environment
 from service import collect_evidence
 
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_REQUEST = HERE / "henry_search_brief.example.json"
+DEFAULT_REQUEST = HERE / "search_brief.example.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         type=Path,
         default=DEFAULT_REQUEST,
-        help="Path to Henry's SearchBrief JSON file.",
+        help="Path to a SearchBrief JSON file.",
     )
     parser.add_argument(
         "--provider",
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
 
 async def run(request_path: Path, provider_name: str) -> str:
     payload = json.loads(request_path.read_text(encoding="utf-8"))
-    request = HenrySearchBrief.model_validate(payload).to_ask_request()
+    request = SearchBrief.model_validate(payload).to_ask_request()
     provider = (
         MockDocumentProvider()
         if provider_name == "mock"
