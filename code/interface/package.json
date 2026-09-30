@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check:scorer": "tsx scripts/check-scorer.ts"
+    "check:scorer": "tsx scripts/check-scorer.ts",
+    "check:links": "tsx scripts/check-links.ts"
   },
   "dependencies": {
     "@ai-sdk/google-vertex": "^3.0.180",

@@ -1,9 +1,13 @@
 "use client";
-import { SearchX } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, SearchX } from "lucide-react";
+import { SCORING } from "@/lib/evaluate";
+import { cn } from "@/lib/client/cn";
 import type { PinpointSession } from "@/lib/client/use-pinpoint";
 import { AnswerCard, ConflictBanner, ExpertCard, ResultCard, ResultsSkeleton } from "./results";
 
 export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact?: boolean; limit?: number }) {
+  const [showHidden, setShowHidden] = useState(false);
   const r = s.response;
   if (!r) {
     if (s.searchLoading || s.briefLoading) return <ResultsSkeleton count={compact ? 2 : 4} />;
@@ -15,7 +19,11 @@ export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact
       </div>
     );
   }
-  const results = limit ? r.results.slice(0, limit) : r.results;
+  // Results saved in history before normalisation existed have no `shown` field: treat them as shown.
+  const visible = r.results.filter((x) => x.shown !== false);
+  const hidden = r.results.filter((x) => x.shown === false);
+  const results = limit ? visible.slice(0, limit) : visible;
+  const pct = Math.round(SCORING.display.threshold * 100);
   const pinned = new Set(s.pins.map((d) => d.id));
   const conflictIds = new Set(r.conflicts.flatMap((c) => [c.winner_id, ...c.loser_ids]));
 
@@ -26,7 +34,7 @@ export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact
       <AnswerCard response={r} compact={compact} />
       <div className="flex items-baseline justify-between pt-1">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {compact ? `Top ${results.length} of ${r.results.length} sources` : `${r.results.length} sources ranked by fit`}
+          {compact ? `Top ${results.length} of ${r.results.length} sources` : `${visible.length} of ${r.results.length} sources within ${pct}% of the best`}
         </h2>
       </div>
       {results.map((res, i) => (
@@ -42,6 +50,30 @@ export function ResultsView({ s, compact, limit }: { s: PinpointSession; compact
           highlight={!compact && conflictIds.has(res.doc.id) && i === 0}
         />
       ))}
+      {!compact && hidden.length > 0 && (
+        <>
+          <button
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border py-2 text-xs font-medium text-muted hover:border-primary/40 hover:text-primary"
+            onClick={() => setShowHidden((v) => !v)}
+            aria-expanded={showHidden}
+          >
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showHidden && "rotate-180")} aria-hidden />
+            {showHidden ? "Hide" : "Show"} {hidden.length} more below {pct}% of the best
+          </button>
+          {showHidden &&
+            hidden.map((res) => (
+              <ResultCard
+                key={res.doc.id}
+                r={res}
+                rank={r.results.indexOf(res) + 1}
+                pinned={pinned.has(res.doc.id)}
+                onPin={s.togglePin}
+                feedback={s.feedback}
+                onRate={s.rate}
+              />
+            ))}
+        </>
+      )}
       {compact && banner}
       {r.expert && <ExpertCard expert={r.expert} />}
     </div>

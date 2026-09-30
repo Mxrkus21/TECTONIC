@@ -18,7 +18,7 @@ function check(name: string, ok: boolean, detail = "") {
 for (const client of ["Acme", "Beta NV", undefined]) {
   const res = runSearch({ ...base, scope: { country: "BE", client } });
   console.log(`\n=== client=${client ?? "none"} ===`);
-  for (const r of res.results) console.log(`  ${String(r.fit).padStart(3)}  ${r.doc.id.padEnd(22)} ${r.flags.join(",")}`);
+  for (const r of res.results) console.log(`  ${String(r.fit).padStart(3)}  ${r.relative.toFixed(2)} ${r.shown ? "shown " : "hidden"}  ${r.doc.id.padEnd(22)} ${r.flags.join(",")}`);
   console.log("  answer:", res.answer.text);
   console.log("  rely:", res.answer.rely_on);
   for (const c of res.conflicts) console.log("  conflict:", c.winner_id, "beats", c.loser_ids.join(","));
@@ -39,6 +39,13 @@ for (const client of ["Acme", "Beta NV", undefined]) {
   check("NL policy flagged out of scope", !!nl?.flags.includes("out_of_scope"));
   const old = res.results.find((r) => r.doc.id === "pol-be-2025");
   check("2025 policy superseded", !!old?.flags.includes("superseded"));
+
+  const shown = res.results.filter((r) => r.shown).map((r) => r.doc.id);
+  check("best result is normalised to 1", res.results[0].relative === 1);
+  check("every cited source is shown", res.answer.citations.every((id) => shown.includes(id)), shown.join(","));
+  check("flagged sources are below the threshold", res.results.filter((r) => r.flags.length).every((r) => !r.shown));
+  const policy = res.results.find((r) => r.doc.id === "pol-be-2026");
+  check("working link earns a bonus", !!policy?.reasons.some((x) => x.includes("verified working")));
 }
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nAll checks passed");

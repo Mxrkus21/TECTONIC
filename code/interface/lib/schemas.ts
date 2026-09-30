@@ -41,6 +41,9 @@ export const documentRecordSchema = z.object({
   supersedes: z.array(z.string()).optional(),
   endorsements: z.number().optional(),
   excerpt: z.string(),
+  links: z
+    .array(z.object({ url: z.string(), ok: z.boolean(), status: z.number(), checked_at: z.string() }))
+    .optional(),
 });
 
 export const corpusSchema = z.array(documentRecordSchema);

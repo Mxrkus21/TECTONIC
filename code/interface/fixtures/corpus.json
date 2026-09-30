@@ -5,17 +5,48 @@
     "title": "Payroll change deadlines Belgium 2026",
     "url": "https://intranet.example.com/knowledge-centre/be/payroll-change-deadlines-2026",
     "summary": "Official cut-off days for submitting payroll changes per month in Belgium for 2026, including the year-end run.",
-    "claims": [{ "key": "december_cutoff_day", "value": "15", "unit": "day of month" }],
-    "topic_tags": ["payroll", "deadline", "cutoff", "december", "year-end", "changes", "belgium"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "15",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "deadline",
+      "cutoff",
+      "december",
+      "year-end",
+      "changes",
+      "belgium"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "effective_from": "2026-01-01",
     "effective_until": "2026-12-31",
     "last_modified": "2026-06-15",
     "last_reviewed": "2026-09-01",
-    "owner": { "name": "Pieter V.", "role": "Payroll Policy Lead BE, Knowledge Centre BE", "active": true },
-    "authority_level": 1.0,
-    "supersedes": ["pol-be-2025"],
-    "excerpt": "§3 Year-end: Payroll changes for the December run must be submitted no later than the 15th of December. Late changes are processed in the January correction run."
+    "owner": {
+      "name": "Pieter V.",
+      "role": "Payroll Policy Lead BE, Knowledge Centre BE",
+      "active": true
+    },
+    "authority_level": 1,
+    "supersedes": [
+      "pol-be-2025"
+    ],
+    "excerpt": "§3 Year-end: Payroll changes for the December run must be submitted no later than the 15th of December. Late changes are processed in the January correction run. Legal basis and social-security calendar: https://www.socialsecurity.be",
+    "links": [
+      {
+        "url": "https://www.socialsecurity.be",
+        "ok": true,
+        "status": 200,
+        "checked_at": "2026-09-30"
+      }
+    ]
   },
   {
     "id": "pol-be-2025",
@@ -23,15 +54,36 @@
     "title": "Payroll change deadlines Belgium 2025",
     "url": "https://intranet.example.com/knowledge-centre/be/payroll-change-deadlines-2025",
     "summary": "Cut-off days for submitting payroll changes in Belgium for 2025.",
-    "claims": [{ "key": "december_cutoff_day", "value": "20", "unit": "day of month" }],
-    "topic_tags": ["payroll", "deadline", "cutoff", "december", "year-end", "changes", "belgium"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "20",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "deadline",
+      "cutoff",
+      "december",
+      "year-end",
+      "changes",
+      "belgium"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "effective_from": "2025-01-01",
     "effective_until": "2025-12-31",
     "last_modified": "2025-01-10",
     "last_reviewed": "2025-01-10",
-    "owner": { "name": "Pieter V.", "role": "Payroll Policy Lead BE, Knowledge Centre BE", "active": true },
-    "authority_level": 1.0,
+    "owner": {
+      "name": "Pieter V.",
+      "role": "Payroll Policy Lead BE, Knowledge Centre BE",
+      "active": true
+    },
+    "authority_level": 1,
     "excerpt": "§3 Year-end: Payroll changes for the December run must be submitted no later than the 20th of December."
   },
   {
@@ -40,12 +92,32 @@
     "title": "Payroll Operations Manual v7, §4.2 Year-end",
     "url": "https://intranet.example.com/manuals/payroll-operations-v7#4-2",
     "summary": "Operational manual for payroll consultants. Section 4.2 covers year-end processing steps.",
-    "claims": [{ "key": "december_cutoff_day", "value": "20", "unit": "day of month" }],
-    "topic_tags": ["payroll", "operations", "year-end", "december", "cutoff", "changes"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "20",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "operations",
+      "year-end",
+      "december",
+      "cutoff",
+      "changes"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "effective_from": "2025-02-01",
     "last_modified": "2025-02-12",
-    "owner": { "name": "Operations Excellence BE", "role": "Process owner, payroll operations", "active": true },
+    "owner": {
+      "name": "Operations Excellence BE",
+      "role": "Process owner, payroll operations",
+      "active": true
+    },
     "authority_level": 0.8,
     "excerpt": "4.2 Year-end: Consultants collect all employee changes (new hires, leavers, salary changes) and submit them to the payroll engine by the 20th of December."
   },
@@ -55,14 +127,40 @@
     "title": "#payroll-be — \"December cutoff?\"",
     "url": "https://teams.example.com/channels/payroll-be/messages/2025-03-14",
     "summary": "Informal Teams answer from a colleague about the December cut-off.",
-    "claims": [{ "key": "december_cutoff_day", "value": "20", "unit": "day of month" }],
-    "topic_tags": ["payroll", "december", "cutoff", "deadline"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "20",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "december",
+      "cutoff",
+      "deadline"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "last_modified": "2025-03-14",
-    "owner": { "name": "Jan D.", "role": "Payroll Consultant (left the company)", "active": false },
+    "owner": {
+      "name": "Jan D.",
+      "role": "Payroll Consultant (left the company)",
+      "active": false
+    },
     "authority_level": 0.4,
     "endorsements": 3,
-    "excerpt": "Jan D.: \"it's the 20th for December, same as always 👍\" — 3 reactions"
+    "excerpt": "Jan D.: \"it's the 20th for December, same as always 👍\" — 3 reactions Source: https://intranet.example.com/old-wiki/payroll-december",
+    "links": [
+      {
+        "url": "https://intranet.example.com/old-wiki/payroll-december",
+        "ok": false,
+        "status": 0,
+        "checked_at": "2026-09-30"
+      }
+    ]
   },
   {
     "id": "mail-acme-exception",
@@ -70,12 +168,33 @@
     "title": "RE: Acme year-end cutoff",
     "url": "https://outlook.example.com/mail/thread/acme-year-end-cutoff",
     "summary": "Pieter V. confirms a contractual exception for client Acme: December changes accepted until the 18th.",
-    "claims": [{ "key": "december_cutoff_day", "value": "18", "unit": "day of month" }],
-    "topic_tags": ["payroll", "december", "cutoff", "deadline", "year-end", "exception", "acme"],
-    "scope": { "country": "BE", "client": "Acme" },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "18",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "december",
+      "cutoff",
+      "deadline",
+      "year-end",
+      "exception",
+      "acme"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": "Acme"
+    },
     "effective_from": "2026-09-10",
     "last_modified": "2026-09-10",
-    "owner": { "name": "Pieter V.", "role": "Payroll Policy Lead BE, Knowledge Centre BE", "active": true },
+    "owner": {
+      "name": "Pieter V.",
+      "role": "Payroll Policy Lead BE, Knowledge Centre BE",
+      "active": true
+    },
     "authority_level": 0.6,
     "excerpt": "Pieter V.: \"Confirmed — per the Acme service agreement, we accept December payroll changes for Acme until the 18th. All other BE clients stay on the 15th.\""
   },
@@ -85,14 +204,35 @@
     "title": "Payroll change deadlines Netherlands 2026",
     "url": "https://intranet.example.com/knowledge-centre/nl/payroll-change-deadlines-2026",
     "summary": "Cut-off days for payroll changes in the Netherlands for 2026.",
-    "claims": [{ "key": "december_cutoff_day", "value": "25", "unit": "day of month" }],
-    "topic_tags": ["payroll", "deadline", "cutoff", "december", "year-end", "changes", "netherlands"],
-    "scope": { "country": "NL", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "25",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "deadline",
+      "cutoff",
+      "december",
+      "year-end",
+      "changes",
+      "netherlands"
+    ],
+    "scope": {
+      "country": "NL",
+      "client": null
+    },
     "effective_from": "2026-01-01",
     "effective_until": "2026-12-31",
     "last_modified": "2026-05-02",
-    "owner": { "name": "Sanne K.", "role": "Payroll Policy Lead NL", "active": true },
-    "authority_level": 1.0,
+    "owner": {
+      "name": "Sanne K.",
+      "role": "Payroll Policy Lead NL",
+      "active": true
+    },
+    "authority_level": 1,
     "excerpt": "Wijzigingen voor de decemberverloning moeten uiterlijk op 25 december worden aangeleverd."
   },
   {
@@ -101,12 +241,32 @@
     "title": "Year-end payroll checklist BE",
     "url": "https://intranet.example.com/checklists/year-end-be",
     "summary": "Step-by-step checklist for consultants preparing the December payroll run in Belgium.",
-    "claims": [{ "key": "december_cutoff_day", "value": "15", "unit": "day of month" }],
-    "topic_tags": ["payroll", "checklist", "year-end", "december", "changes", "cutoff"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "15",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "checklist",
+      "year-end",
+      "december",
+      "changes",
+      "cutoff"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "effective_from": "2026-03-01",
     "last_modified": "2026-03-01",
-    "owner": { "name": "Operations Excellence BE", "role": "Process owner, payroll operations", "active": true },
+    "owner": {
+      "name": "Operations Excellence BE",
+      "role": "Process owner, payroll operations",
+      "active": true
+    },
     "authority_level": 0.7,
     "excerpt": "Step 4: Collect changes before the 15th of December and submit them in one batch."
   },
@@ -116,13 +276,33 @@
     "title": "ServiceNow rule: block payroll change tickets after day 15 in December",
     "url": "https://servicenow.example.com/rules/payroll-dec-block",
     "summary": "Automated workflow rule that rejects new payroll change tickets for Belgian clients after the 15th of December.",
-    "claims": [{ "key": "december_cutoff_day", "value": "15", "unit": "day of month" }],
-    "topic_tags": ["payroll", "workflow", "december", "cutoff", "changes", "deadline"],
-    "scope": { "country": "BE", "client": null },
+    "claims": [
+      {
+        "key": "december_cutoff_day",
+        "value": "15",
+        "unit": "day of month"
+      }
+    ],
+    "topic_tags": [
+      "payroll",
+      "workflow",
+      "december",
+      "cutoff",
+      "changes",
+      "deadline"
+    ],
+    "scope": {
+      "country": "BE",
+      "client": null
+    },
     "effective_from": "2026-01-05",
     "last_modified": "2026-01-05",
-    "owner": { "name": "Service Management BE", "role": "ServiceNow platform team", "active": true },
-    "authority_level": 1.0,
+    "owner": {
+      "name": "Service Management BE",
+      "role": "ServiceNow platform team",
+      "active": true
+    },
+    "authority_level": 1,
     "excerpt": "IF ticket.category = 'payroll change' AND month = 12 AND day > 15 AND country = 'BE' THEN reject WITH 'December cut-off passed'."
   }
 ]

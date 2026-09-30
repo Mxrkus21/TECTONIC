@@ -20,7 +20,11 @@ export type DocumentRecord = {
   supersedes?: string[];
   endorsements?: number;
   excerpt: string;
+  /** Result of the offline link check (scripts/check-links.ts) for URLs found in the text. */
+  links?: LinkCheck[];
 };
+
+export type LinkCheck = { url: string; ok: boolean; status: number; checked_at: string };
 
 export type SearchBrief = {
   question: string;
@@ -36,7 +40,9 @@ export type ResultFlag = "superseded" | "conflict_loser" | "out_of_scope" | "own
 
 export type ScoredResult = {
   doc: DocumentRecord;
-  fit: number; // 0..100
+  fit: number; // raw weighted score, NOT clamped (can be < 0 or > 100)
+  relative: number; // 0..1, fit normalised against the best result of this search
+  shown: boolean; // relative >= SCORING.display.threshold (best result is always shown)
   factors: FactorScores;
   reasons: string[];
   flags: ResultFlag[];

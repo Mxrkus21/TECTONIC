@@ -2,7 +2,10 @@
  * Evaluation module — deterministic, explainable fit scoring.
  *
  * fit = 100 × (w.relevance·relevance + w.recency·recency + w.scope·scope + w.authority·authority + w.ownerActive·ownerActive)
- *       − penalties (superseded, conflict loser, out of scope), clamped to 0..100.
+ *       + link bonus − penalties (superseded, conflict loser, out of scope). NOT clamped.
+ *
+ * Recency is relative to the newest document found: half-life = age of that document (days), at least 14 days.
+ * Display: fits are shifted by an offset and normalised by the best result; results below the threshold are hidden.
  *
  * Every adjustment adds a plain-language entry to `reasons` so the UI can show WHY a document ranks where it does.
  */
@@ -22,7 +25,17 @@ import type {
 export const SCORING = {
   weights: { relevance: 0.4, recency: 0.2, scope: 0.2, authority: 0.15, ownerActive: 0.05 },
   penalties: { superseded: 30, conflictLoser: 20, outOfScope: 25 },
-  recency: { halfLifeMonths: 12, expiredMultiplier: 0.5 },
+  recency: { minHalfLifeDays: 14, expiredMultiplier: 0.5 },
+  /** Bonus points for verified working links in the text (scaled by the share of working links). */
+  linkBonus: { points: 5 },
+  display: {
+    threshold: 0.7,
+    /**
+     * "negative-only": shift only if the lowest fit is below 0 (e.g. -7, 8, 1 → 0, 15, 8), then divide by the best.
+     * "min-max": always shift the lowest fit to 0. Stretches every batch over 0..1, so close results can be cut.
+     */
+    offsetMode: "negative-only" as "negative-only" | "min-max",
+  },
   scope: { countryMismatch: 0.1, noCountryInBrief: 0.6, generalMatch: 0.8, clientMatch: 1.0, otherClient: 0 },
   relevance: { tagWeight: 0.7, textWeight: 0.3 },
 } as const;
@@ -59,9 +72,46 @@ const SOURCE_LABEL: Record<DocumentRecord["source_type"], string> = {
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-function monthsBetween(fromIso: string, toIso: string): number {
+function daysBetween(fromIso: string, toIso: string): number {
   const ms = new Date(toIso).getTime() - new Date(fromIso).getTime();
-  return ms / (1000 * 60 * 60 * 24 * 30.44);
+  return ms / (1000 * 60 * 60 * 24);
+}
+
+/** Latest of effective_from / last_modified, never later than the reference date. */
+function docDate(doc: DocumentRecord, referenceDate: string): string {
+  const dates = [doc.effective_from, doc.last_modified].filter((d): d is string => !!d && d <= referenceDate);
+  return dates.sort().at(-1) ?? doc.last_modified;
+}
+
+type RecencyContext = { newest: string; halfLifeDays: number };
+
+/** The newest document found is the reference; its age (in days) becomes the half-life, min. 14 days. */
+function recencyContext(brief: SearchBrief, candidates: Candidate[]): RecencyContext {
+  const newest = candidates.map((d) => docDate(d, brief.reference_date)).sort().at(-1) ?? brief.reference_date;
+  const halfLifeDays = Math.max(SCORING.recency.minHalfLifeDays, daysBetween(newest, brief.reference_date));
+  return { newest, halfLifeDays };
+}
+
+const URL_RE = /https?:\/\/[^\s"'<>)\]]+/g;
+
+export function extractLinks(doc: DocumentRecord): string[] {
+  const text = `${doc.summary} ${doc.excerpt}`;
+  return Array.from(new Set((text.match(URL_RE) ?? []).map((u) => u.replace(/[.,;:!?]+$/, ""))));
+}
+
+/** Uses the stored offline link check; unchecked links count as not working. */
+function scoreLinks(doc: DocumentRecord, reasons: string[]): number {
+  const links = extractLinks(doc);
+  if (!links.length) return 0;
+  const checked = new Map((doc.links ?? []).map((l) => [l.url, l]));
+  const working = links.filter((u) => checked.get(u)?.ok).length;
+  const bonus = SCORING.linkBonus.points * (working / links.length);
+  reasons.push(
+    working
+      ? `${working} of ${links.length} linked source${links.length > 1 ? "s" : ""} verified working (+${Math.round(bonus * 10) / 10})`
+      : `Contains ${links.length} broken or unverified link${links.length > 1 ? "s" : ""} (no bonus)`,
+  );
+  return bonus;
 }
 
 /**
@@ -92,13 +142,17 @@ function scoreRelevance(brief: SearchBrief, doc: DocumentRecord, reasons: string
   return clamp(score, 0, 1);
 }
 
-function scoreRecency(brief: SearchBrief, doc: DocumentRecord, reasons: string[], flags: ResultFlag[]): number {
-  const dates = [doc.effective_from, doc.last_modified].filter(Boolean) as string[];
-  const latest = dates.sort().at(-1) ?? doc.last_modified;
-  const months = Math.max(0, monthsBetween(latest, brief.reference_date));
-  let score = Math.pow(0.5, months / SCORING.recency.halfLifeMonths);
-  const age = months < 1 ? "less than a month" : `${Math.round(months)} months`;
-  reasons.push(`Last updated ${latest} (${age} before ${brief.reference_date})`);
+function scoreRecency(brief: SearchBrief, doc: DocumentRecord, ctx: RecencyContext, reasons: string[], flags: ResultFlag[]): number {
+  const latest = docDate(doc, brief.reference_date);
+  const behind = Math.max(0, daysBetween(latest, ctx.newest));
+  let score = Math.pow(0.5, behind / ctx.halfLifeDays);
+  const hl = Math.round(ctx.halfLifeDays);
+  reasons.push(
+    behind < 1
+      ? `Newest source found (${latest}) — sets the recency half-life to ${hl} days`
+      : `Last updated ${latest}, ${Math.round(behind)} days older than the newest source (half-life ${hl} days)`,
+  );
+  const months = daysBetween(latest, brief.reference_date) / 30.44;
 
   if (doc.effective_until && doc.effective_until < brief.reference_date) {
     score *= SCORING.recency.expiredMultiplier;
@@ -155,6 +209,7 @@ function baseFit(f: FactorScores, ownerActive: number): number {
 
 /** Score candidates, detect conflicts, apply penalties, and re-rank. */
 export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { results: ScoredResult[]; conflicts: Conflict[] } {
+  const recency = recencyContext(brief, candidates);
   const supersededBy = new Map<string, DocumentRecord>();
   for (const d of candidates) for (const id of d.supersedes ?? []) supersededBy.set(id, d);
 
@@ -164,7 +219,7 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
     const flags: ResultFlag[] = [];
     const factors: FactorScores = {
       relevance: round2(scoreRelevance(brief, doc, reasons)),
-      recency: round2(scoreRecency(brief, doc, reasons, flags)),
+      recency: round2(scoreRecency(brief, doc, recency, reasons, flags)),
       scope: round2(scoreScope(brief, doc, reasons, flags)),
       authority: round2(scoreAuthority(doc, reasons)),
     };
@@ -173,7 +228,7 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
       flags.push("owner_inactive");
       reasons.push(`Owner ${doc.owner.name} is no longer active`);
     }
-    let fit = baseFit(factors, ownerActive);
+    let fit = baseFit(factors, ownerActive) + scoreLinks(doc, reasons);
 
     const newer = supersededBy.get(doc.id);
     if (newer) {
@@ -185,7 +240,7 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
       fit -= SCORING.penalties.outOfScope;
       reasons.push(`Outside your scope (−${SCORING.penalties.outOfScope})`);
     }
-    return { doc, fit, factors, reasons, flags };
+    return { doc, fit, relative: 0, shown: false, factors, reasons, flags };
   });
 
   // Pass 2: conflict detection among in-scope, current, general (non client-specific) documents.
@@ -205,9 +260,23 @@ export function evaluateFit(brief: SearchBrief, candidates: Candidate[]): { resu
     }
   }
 
-  for (const r of results) r.fit = Math.round(clamp(r.fit, 0, 100));
   results.sort((a, b) => b.fit - a.fit);
+  normalise(results);
+  for (const r of results) r.fit = Math.round(r.fit);
   return { results, conflicts };
+}
+
+/** Offset + normalise against the best result, then mark what passes the display threshold. */
+function normalise(results: ScoredResult[]) {
+  if (!results.length) return;
+  const { threshold, offsetMode } = SCORING.display;
+  const min = Math.min(...results.map((r) => r.fit));
+  const offset = offsetMode === "min-max" ? -min : Math.max(0, -min);
+  const best = Math.max(...results.map((r) => r.fit + offset));
+  results.forEach((r, i) => {
+    r.relative = best > 0 ? round2((r.fit + offset) / best) : 1;
+    r.shown = i === 0 || r.relative >= threshold;
+  });
 }
 
 function isConflictEligible(r: ScoredResult): boolean {

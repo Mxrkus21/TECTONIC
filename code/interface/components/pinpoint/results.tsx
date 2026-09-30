@@ -85,9 +85,9 @@ export function FlagBadges({ r }: { r: ScoredResult }) {
   );
 }
 
-function fitTone(fit: number) {
-  if (fit >= 75) return "text-trusted";
-  if (fit >= 50) return "text-warning";
+function fitTone(relative: number) {
+  if (relative >= 0.85) return "text-trusted";
+  if (relative >= 0.7) return "text-warning";
   return "text-conflict";
 }
 
@@ -155,10 +155,10 @@ export function ResultCard({
               </div>
               <h3 className="text-sm font-semibold leading-snug text-ink">{r.doc.title}</h3>
             </div>
-            <Tooltip content="Fit score: weighted relevance, recency, scope and authority, minus penalties">
+            <Tooltip content="Fit score: weighted relevance, recency, scope and authority, plus link bonus, minus penalties (not capped). Below: share of the best result in this search.">
               <div className="shrink-0 text-right">
-                <div className={cn("text-2xl font-bold leading-none tabular-nums", fitTone(r.fit))}>{r.fit}%</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted">fit</div>
+                <div className={cn("text-2xl font-bold leading-none tabular-nums", fitTone(r.relative ?? r.fit / 100))}>{r.fit}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted">{r.relative === undefined ? "fit" : `fit · ${Math.round(r.relative * 100)}% of best`}</div>
               </div>
             </Tooltip>
           </div>
@@ -255,7 +255,7 @@ export function ConflictBanner({ conflicts, results }: { conflicts: Conflict[]; 
               <div key={r.doc.id} className={cn("rounded-md border bg-card p-2.5", i === 0 ? "border-trusted/50" : "border-conflict/30")}>
                 <div className="flex items-center justify-between">
                   <Badge tone={i === 0 ? "trusted" : "conflict"}>{i === 0 ? "Wins" : "Outranked"}</Badge>
-                  <span className="text-xs tabular-nums text-muted">fit {r.fit}%</span>
+                  <span className="text-xs tabular-nums text-muted">fit {r.fit}</span>
                 </div>
                 <div className="mt-1.5 text-lg font-bold text-ink">{claimOf(r)}</div>
                 <div className="text-xs font-semibold leading-snug">{r.doc.title}</div>
