@@ -36,5 +36,9 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.19.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.28",
+    "undici": "^6.29.0"
   }
 }

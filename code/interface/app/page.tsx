@@ -42,7 +42,7 @@ export default function Home() {
   }, [hasResults]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Header
         right={
           <a href="/panel" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-primary">

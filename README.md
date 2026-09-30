@@ -5,7 +5,7 @@
 
 _Prototype built for the SD Worx challenge (TECTONIC hackathon)._
 
-![Screenshot placeholder](docs/screenshot.png)
+![Pinpoint full view: conflict comparison, answer with citations, ranked sources](docs/screenshot.jpg)
 
 ## The problem
 

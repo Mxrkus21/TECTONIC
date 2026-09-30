@@ -342,7 +342,7 @@ export function ChatThread({ s, compact }: { s: PinpointSession; compact?: boole
         </Bubble>
       )}
       {s.chatError && <div className="rounded-md bg-conflict-soft p-2 text-xs text-conflict">The assistant is unavailable right now. Please try again.</div>}
-      {s.phase === "clarify" && s.hasAssistantReply && !streaming && <ClarifyChips s={s} />}
+      {s.phase === "clarify" && (s.hasAssistantReply || s.chatError) && !streaming && <ClarifyChips s={s} />}
       {s.clarifyDone && s.messages.length > 1 && <Bubble role="user">{scopeSummary}</Bubble>}
       {s.clarifyDone && <BriefCard s={s} compact={compact} />}
       {s.error && <div className="rounded-md bg-conflict-soft p-2 text-xs text-conflict">{s.error}</div>}
