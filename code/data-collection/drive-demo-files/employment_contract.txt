@@ -1,0 +1,16 @@
+EMPLOYMENT CONTRACT EXTRACT
+
+Employee ID: EMP-1042
+Work location: Belgium
+Employment type: Full-time
+Department: Engineering
+Contract version: 2.0
+Effective date: 3 January 2026
+Document owner: People Operations
+Status: Active
+
+The employee is entitled to the statutory paid leave provided by the active Belgian leave policy. In addition to that statutory entitlement, the employee receives 2 company leave days during each complete calendar year.
+
+Company leave days are tracked separately but may be booked through the same time-management workflow. Unused company leave expires at the end of the calendar year and cannot be converted into salary unless required by applicable law.
+
+This contractual benefit supplements the country policy; it does not replace or reduce the employee's statutory entitlement.

@@ -1,0 +1,10 @@
+{
+  "question": "What is the December payroll change deadline?",
+  "topic_tags": ["payroll", "deadline", "december", "year-end"],
+  "scope": {
+    "country": "BE",
+    "client": "Acme"
+  },
+  "reference_date": "2026-09-30",
+  "source_types": ["policy", "manual", "email"]
+}

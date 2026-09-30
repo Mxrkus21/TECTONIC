@@ -1,0 +1,13 @@
+.gcloudignore
+.git/
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+tests/
+drive-demo-files/
+evidance_bundle.json
+google_drive_evidence_bundle.json
