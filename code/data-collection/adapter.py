@@ -1,4 +1,4 @@
-"""Translate Henry's UI SearchBrief into the data-collection contract."""
+"""Translate the interface SearchBrief into the data-collection contract."""
 
 from __future__ import annotations
 
@@ -16,18 +16,18 @@ from contracts import (
 )
 
 
-class HenryScope(ContractModel):
+class SearchScope(ContractModel):
     country: Optional[str] = Field(default=None, min_length=2, max_length=10)
     client: Optional[str] = Field(default=None, max_length=80)
     employee_category: Optional[str] = Field(default=None, max_length=80)
 
 
-class HenrySearchBrief(ContractModel):
+class SearchBrief(ContractModel):
     """Public request body matching code/interface's SearchBrief type."""
 
     question: str = Field(min_length=1, max_length=500)
     topic_tags: List[str] = Field(default_factory=list, max_length=20)
-    scope: HenryScope = Field(default_factory=HenryScope)
+    scope: SearchScope = Field(default_factory=SearchScope)
     reference_date: date
     source_types: Optional[List[str]] = Field(default=None, max_length=20)
 

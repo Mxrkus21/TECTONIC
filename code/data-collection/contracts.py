@@ -52,7 +52,7 @@ class UserContext(ContractModel):
 
 
 class SearchContext(ContractModel):
-    """Search intent produced by Henry's UI and preserved for downstream use."""
+    """Search intent produced by the UI and preserved for downstream use."""
 
     topic_tags: List[str] = Field(default_factory=list)
     client: Optional[str] = None

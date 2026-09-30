@@ -1,5 +1,5 @@
 /**
- * Ready-to-copy Next.js server route for Henry's interface.
+ * Ready-to-copy Next.js server route for the web interface.
  *
  * Copy this file to:
  *   code/interface/app/api/evidence/route.ts

@@ -1,4 +1,4 @@
-"""HTTP boundary for Henry's interface and other server-side clients."""
+"""HTTP boundary for the web interface and other server-side clients."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, status
 
 from contracts import EvidenceBundle
 from document_ai_ocr import document_ai_ocr_from_environment
-from henry_adapter import HenrySearchBrief
+from adapter import SearchBrief
 from mock import MockDocumentProvider
 from providers.base import DocumentProvider
 from providers.google_drive import google_drive_provider_from_environment
@@ -68,8 +68,8 @@ async def health() -> dict[str, str]:
     response_model=EvidenceBundle,
     dependencies=[Depends(_authorize)],
 )
-async def collect(brief: HenrySearchBrief) -> EvidenceBundle:
-    """Accept Henry's existing SearchBrief and return retrieval evidence."""
+async def collect(brief: SearchBrief) -> EvidenceBundle:
+    """Accept the interface SearchBrief and return retrieval evidence."""
 
     request = brief.to_ask_request()
     try:
