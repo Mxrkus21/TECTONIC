@@ -51,5 +51,5 @@ curl "$DATA_COLLECTION_API_URL/health"
 curl -X POST "$DATA_COLLECTION_API_URL/api/v1/evidence/collect" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $DATA_COLLECTION_API_TOKEN" \
-  --data-binary @henry_leave_brief.example.json
+  --data-binary @henry_search_brief.example.json
 ```

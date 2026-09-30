@@ -10,14 +10,14 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from contracts import AskRequest
+from henry_adapter import HenrySearchBrief
 from mock import MockDocumentProvider
 from providers.google_drive import google_drive_provider_from_environment
 from service import collect_evidence
 
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_REQUEST = HERE / "henry_request.example.json"
+DEFAULT_REQUEST = HERE / "henry_search_brief.example.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
         nargs="?",
         type=Path,
         default=DEFAULT_REQUEST,
-        help="Path to Henry's AskRequest JSON file.",
+        help="Path to Henry's SearchBrief JSON file.",
     )
     parser.add_argument(
         "--provider",
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
 
 async def run(request_path: Path, provider_name: str) -> str:
     payload = json.loads(request_path.read_text(encoding="utf-8"))
-    request = AskRequest.model_validate(payload)
+    request = HenrySearchBrief.model_validate(payload).to_ask_request()
     provider = (
         MockDocumentProvider()
         if provider_name == "mock"
@@ -62,7 +62,7 @@ def main() -> int:
     except json.JSONDecodeError as exc:
         print(f"Request file is not valid JSON: {exc}", file=sys.stderr)
     except ValidationError as exc:
-        print(f"Request does not match AskRequest:\n{exc}", file=sys.stderr)
+        print(f"Request does not match SearchBrief:\n{exc}", file=sys.stderr)
     except (RuntimeError, ValueError) as exc:
         print(f"Demo failed: {exc}", file=sys.stderr)
     return 2
