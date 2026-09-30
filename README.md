@@ -93,6 +93,16 @@ All weights live in one object: `SCORING` in [`code/interface/lib/evaluate/index
 
 `npm run check:scorer` asserts these outcomes at all three dates.
 
+### Try it in 2 minutes
+
+1. Open `/`, click **Try: "What is the deadline…"**, send. Answer the chips: **BE**, **Acme** → *Build search brief*.
+2. Read the answer (18th for Acme, 15th otherwise), then click the **red conflict banner** to see why the 15th
+   beats the 20th.
+3. Expand **Why this rank** on any card — every point added or removed is explained.
+4. In the search brief, switch **Client** to *Beta NV* → the Acme exception drops out, results re-rank live.
+5. Change **As of** to *2027-01-15* → the 2027 policy takes over (12th) and the old ServiceNow rule is flagged.
+6. Open `/panel` — the same flow in a 400px side panel, as it would appear in Teams or Outlook.
+
 ## Run it
 
 ```bash
@@ -109,38 +119,66 @@ clarifying questions, heuristic search brief). To use Gemini on Google Cloud Ver
 | --- | --- |
 | `GOOGLE_VERTEX_PROJECT` | GCP project id |
 | `GOOGLE_VERTEX_LOCATION` | e.g. `europe-west1` |
-| `GOOGLE_APPLICATION_CREDENTIALS` | path to a service-account JSON |
+| `GOOGLE_APPLICATION_CREDENTIALS` | path to a service-account JSON (or skip it and run `gcloud auth application-default login`) |
 | `GEMINI_MODEL` | defaults to `gemini-2.5-flash` |
 
 Other scripts: `npm run build`, `npm run lint`, `npm run check:scorer`, `npm run check:links` (re-checks links in the demo corpus; needs internet).
 
 ## Run inside Teams / Outlook
 
-Pinpoint is **one web app** surfaced in Microsoft 365 through the unified app manifest
+Consultants live in Teams and Outlook, so Pinpoint goes there instead of asking them to open another portal.
+It is **one web app** surfaced in Microsoft 365 through the unified app manifest
 ([`code/interface/teams/manifest.json`](code/interface/teams/manifest.json)):
 
-- **Personal tab** → `/` (full three-pane view).
-- **Side panel** (meetings, chats, channels; Outlook via the same manifest) → `/panel`, a compact
-  360–420px single-column view. "Open full view" hands the current search brief over to `/`.
+| Surface | Route | Use case |
+| --- | --- | --- |
+| Teams **personal tab** | `/` | Full three-pane view for deeper research |
+| Teams **meeting / chat / channel side panel** | `/panel` | Answer a colleague's question without leaving the conversation |
+| Outlook (same manifest) | `/panel` | Answer a client email with a cited, copy-ready answer |
 
-To try it: host the app over HTTPS, replace the placeholder ids/domains in the manifest, add two icons,
-zip and upload via Teams → Apps → Manage your apps → Upload.
+- The compact view is a 360–420px single column; **"Open full view"** hands the current search brief to `/`.
+- **"Copy answer with sources"** produces text with citations ready to paste into a chat or email reply.
+- The expert card ("Ask Pieter V.") is where a Teams deep link to the document owner goes.
+- The app sends a `frame-ancestors` policy that allows embedding only by Teams / Outlook / Microsoft 365.
+- On the data side, the connector interfaces map to Microsoft Graph (SharePoint, Teams messages, Outlook mail) —
+  see [`lib/connectors`](code/interface/lib/connectors/README.md).
+
+**Status:** the manifest is a skeleton with placeholder ids — the app is not published to a tenant. To try it:
+host the app over HTTPS, replace the placeholder ids/domains, add two icons, zip and upload via
+Teams → Apps → Manage your apps → Upload a custom app (requires sideloading to be allowed in the tenant).
 
 ## What's real vs. mocked
 
 | Real | Mocked / stubbed |
 | --- | --- |
 | Deterministic scorer, conflict detection, answer + citations, expert routing | Source connectors (`lib/connectors/*` — interfaces + API notes only) |
-| Chat → clarifying chips → editable brief → live re-ranking | Search (keyword filter over `fixtures/corpus.json`) |
+| Time-scoped ranking ("as of" date, not-yet-in-effect handling, time-aware supersession) | Search (keyword filter over `fixtures/corpus.json`) |
+| Chat → clarifying chips → editable brief → live re-ranking | Documents themselves (fictional demo corpus) |
+| Link verification (`npm run check:links`) and link bonus | Teams / Outlook packaging (manifest skeleton, not published) |
 | Gemini integration via Vertex AI (with mock fallback) | "Ask expert" button, voice input |
 | History, pinned documents, thumbs up/down (browser localStorage) | Authentication / multi-user storage |
 
 ## Security notes
 
-- All API input is validated with zod schemas in one file (`lib/schemas.ts`); routes are thin.
-- All LLM calls live in one server-only module (`lib/llm`); conversation text is passed as delimited data.
-- Secrets only via server-side env vars; `.env*` is git-ignored, `.env.example` has placeholders.
-- No HTML injection: chat text is rendered as React text (no `dangerouslySetInnerHTML`).
+- **Input validation:** all API input is validated with zod schemas in one file (`lib/schemas.ts`), including
+  real calendar dates; routes are thin.
+- **Defensive request handling** (`lib/security/http.ts`): JSON content type only (forces a CORS preflight for
+  cross-site calls), 64 KB body limit, safe JSON parsing, generic error messages without internals.
+- **Chat hardening:** `/api/chat` rebuilds the transcript from user/assistant *text only*; client-sent system
+  messages are rejected, unknown fields stripped, transcript length capped.
+- **Cost protection:** per-IP rate limit on the LLM-backed routes (`lib/security/rate-limit.ts`).
+- **Security headers** (`next.config.ts`): `frame-ancestors` restricted to Teams / Outlook / Microsoft 365 hosts
+  (so the app can be embedded there but nowhere else), `nosniff`, referrer and permissions policy, HSTS,
+  `no-store` on API responses.
+- **LLM isolation:** all model calls live in one server-only module (`lib/llm`); conversation text is passed as
+  delimited data, never as instructions.
+- **No SSRF in the request path:** searches never fetch URLs; links are verified offline by
+  `npm run check:links`, which refuses private and local addresses.
+- **Untrusted browser storage:** history, pins and feedback are validated when loaded.
+- **Secrets** only via server-side env vars; `.env*` is git-ignored, `.env.example` has placeholders.
+- **No HTML injection:** chat text is rendered as React text (no `dangerouslySetInnerHTML`).
+- **Dependencies:** `npm audit --omit=dev` reports 0 vulnerabilities (patched transitive `postcss` / `undici`
+  via `overrides`).
 
 ## Code map
 
@@ -152,10 +190,12 @@ code/interface/
   lib/types.ts         data contracts
   lib/schemas.ts       zod validation
   lib/search/          candidate retrieval (stub)
-  lib/evaluate/        fit scoring, conflicts, answer, expert
-  lib/llm/             Gemini / mock
+  lib/evaluate/        fit scoring, time-scoped recency, conflicts, answer, expert
+  lib/llm/             Gemini / mock, time-scope detection
+  lib/security/        request body limits, rate limiting
   lib/connectors/      source connector interfaces (stubs)
-  fixtures/corpus.json demo documents
+  fixtures/corpus.json demo documents (9 sources incl. link-check results)
+  scripts/             check-scorer (demo assertions), check-links (offline link verification)
   teams/manifest.json  Microsoft 365 app manifest skeleton
 ```
 
